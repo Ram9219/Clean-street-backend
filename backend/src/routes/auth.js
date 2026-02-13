@@ -159,6 +159,7 @@ router.post('/login', authLimiter, (req, res, next) => {
           id: user._id, // Keep both for compatibility
           email: user.email,
           name: user.name,
+          phone: user.phone,
           role: user.role,
           profilePicture: user.profilePicture,
           isEmailVerified: user.isEmailVerified,
@@ -231,6 +232,7 @@ router.post('/verify-email', otpRequestLimiter, [
         id: user._id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
         role: user.role,
         volunteer_tier: user.volunteer_tier,
         volunteer_status: user.volunteer_status
