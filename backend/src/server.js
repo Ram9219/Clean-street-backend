@@ -108,6 +108,7 @@ const initializeApp = async () => {
       secret: process.env.SESSION_SECRET || 'clean-street-session-secret-2024',
       resave: false,
       saveUninitialized: false,
+      proxy: true, // Trust the reverse proxy for secure cookies
       store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/clean_street',
         collectionName: 'sessions',
@@ -116,10 +117,9 @@ const initializeApp = async () => {
       cookie: {
         secure: true,
         httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: 'none', // Required for cross-domain cookies
-        domain: cookieDomain,
-        path: '/'
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        // No domain set - defaults to backend domain (onrender.com)
       },
       name: 'clean_street.sid'
     }));
