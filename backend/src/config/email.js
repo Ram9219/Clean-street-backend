@@ -77,6 +77,8 @@ class EmailService {
         return { success: false, error: 'Brevo config missing' }
       }
 
+      console.log('📨 Brevo sender:', this.senderEmail, '-', this.senderName)
+
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {

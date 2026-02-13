@@ -307,7 +307,9 @@ router.post('/resend-otp', otpRequestLimiter, [
     res.json({
       success: true,
       message: 'OTP sent to your email',
-      emailMessageId: result.messageId || null
+      emailMessageId: result.messageId || null,
+      emailSender: process.env.BREVO_SENDER_EMAIL || process.env.SMTP_FROM || null,
+      emailSenderName: process.env.BREVO_SENDER_NAME || 'Clean Street'
     })
   } catch (error) {
     console.error('Resend OTP error:', error)
