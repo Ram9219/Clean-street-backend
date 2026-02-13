@@ -750,9 +750,23 @@ router.post('/volunteers/:id/reject', isAdmin, [
       return res.status(404).json({ success: false, error: 'Volunteer not found' })
     }
 
+    if (user.role !== 'volunteer') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User is not a volunteer' 
+      })
+    }
+
     // Update volunteer status to inactive
     user.volunteer_status = 'inactive'
     await user.save()
+
+    // Update volunteer profile if exists
+    await VolunteerProfile.findOneAndUpdate(
+      { userId: user._id },
+      { status: 'inactive' },
+      { new: true }
+    )
 
     const rejectionReason = req.body.reason || 'Rejected by admin'
 
