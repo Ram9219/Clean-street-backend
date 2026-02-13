@@ -287,9 +287,12 @@ router.post('/create-admin', isSuperAdmin, [
   body('name').trim().notEmpty(),
   body('permissions').optional().isArray()
 ], async (req, res) => {
+  console.log('🔵 Create admin route hit')
   try {
+    console.log('🔵 Validating request body...')
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array())
       return res.status(400).json({ 
         success: false,
         errors: errors.array() 
@@ -298,7 +301,7 @@ router.post('/create-admin', isSuperAdmin, [
     
     const { email, password, name, permissions = [] } = req.body
     
-    console.log('📝 Creating admin:', { email, name })
+    console.log('📝 Creating admin:', { email, name, permissions })
     
     // Check if user exists
     const existingUser = await User.findOne({ email })
