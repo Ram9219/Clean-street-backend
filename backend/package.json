@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "node src/server.js",
+    "dev:watch": "nodemon src/server.js",
     "start": "node src/server.js",
     "setup-env": "node scripts/setup-env.js",
     "create-super-admin": "node scripts/create-super-admin.js",
