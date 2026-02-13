@@ -778,28 +778,32 @@ router.post('/volunteers/:id/reject', isAdmin, [
 
     const rejectionReason = req.body.reason || 'Rejected by admin'
 
-    // Send rejection email
-    try {
-      await emailService.sendEmail(
-        user.email,
-        'Volunteer Application Update',
-        `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #d32f2f;">Application Status Update</h2>
-          <p>Dear ${user.name},</p>
-          <p>Thank you for your interest in volunteering with Clean Street. Unfortunately, your application has been temporarily put on hold.</p>
-          <p><strong>Reason:</strong> ${rejectionReason}</p>
-          <p>You can reapply or contact support for more information.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">
-            Clean Street Team
-          </p>
-        </div>
-        `
-      )
-    } catch (emailError) {
-      console.warn('⚠️  Rejection email send failed:', emailError.message)
-    }
+    // Send rejection email (best effort, don't fail if email fails)
+    console.log('🔵 Sending rejection email...')
+    setImmediate(async () => {
+      try {
+        await emailService.sendEmail(
+          user.email,
+          'Volunteer Application Update',
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #d32f2f;">Application Status Update</h2>
+            <p>Dear ${user.name},</p>
+            <p>Thank you for your interest in volunteering with Clean Street. Unfortunately, your application has been temporarily put on hold.</p>
+            <p><strong>Reason:</strong> ${rejectionReason}</p>
+            <p>You can reapply or contact support for more information.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">
+              Clean Street Team
+            </p>
+          </div>
+          `
+        )
+        console.log('✅ Rejection email sent')
+      } catch (emailError) {
+        console.warn('⚠️  Rejection email send failed:', emailError.message)
+      }
+    })
 
     res.json({
       success: true,
