@@ -93,13 +93,13 @@ router.post('/login', [
         return res.json({
           success: true,
           message: 'Login successful. Password change required.',
-          requiresPasswordChange: true,
           user: {
             id: user._id,
             email: user.email,
             name: user.name,
             role: user.role,
-            isSuperAdmin: user.isSuperAdmin
+            isSuperAdmin: user.isSuperAdmin,
+            requiresPasswordChange: true
           }
         })
       }
@@ -115,7 +115,8 @@ router.post('/login', [
           isSuperAdmin: user.isSuperAdmin,
           permissions: user.permissions,
           isEmailVerified: user.isEmailVerified,
-          twoFactorEnabled: user.twoFactorEnabled
+          twoFactorEnabled: user.twoFactorEnabled,
+          requiresPasswordChange: false
         }
       })
     })
@@ -268,7 +269,15 @@ router.post('/force-password-change', isAdmin, [
     
     res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully',
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isSuperAdmin: user.isSuperAdmin,
+        requiresPasswordChange: false
+      }
     })
     
   } catch (error) {

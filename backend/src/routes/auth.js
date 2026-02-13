@@ -375,9 +375,9 @@ router.get('/me', isAuthenticated, (req, res) => {
       volunteer_tier: req.user.volunteer_tier,
       isSuperAdmin: req.user.isSuperAdmin,
       mustChangePassword: req.user.mustChangePassword,
+      requiresPasswordChange: req.user.mustChangePassword || false,
       stats: req.user.stats
-    },
-    requiresPasswordChange: req.user.mustChangePassword || false
+    }
   })
 })
 
