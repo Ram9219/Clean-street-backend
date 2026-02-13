@@ -90,11 +90,20 @@ router.post('/register', authLimiter, [
       `
     )
 
+    if (!result.success) {
+      await User.deleteOne({ _id: user._id })
+      return res.status(503).json({
+        success: false,
+        error: 'Email service unavailable. Please try again later.'
+      })
+    }
+
     res.status(201).json({
       success: true,
       message: 'Registration successful. Check your email for OTP verification.',
       email: user.email,
-      emailSent: result.success
+      emailSent: true,
+      emailMessageId: result.messageId || null
     })
   } catch (error) {
     console.error('Registration error:', error)
@@ -273,7 +282,7 @@ router.post('/resend-otp', otpRequestLimiter, [
     await user.save()
 
     // Send OTP email
-    await emailService.sendEmail(
+    const result = await emailService.sendEmail(
       email,
       'Email Verification - Clean Street',
       `
@@ -288,9 +297,17 @@ router.post('/resend-otp', otpRequestLimiter, [
       `
     )
 
+    if (!result.success) {
+      return res.status(503).json({
+        success: false,
+        error: 'Email service unavailable. Please try again later.'
+      })
+    }
+
     res.json({
       success: true,
-      message: 'OTP sent to your email'
+      message: 'OTP sent to your email',
+      emailMessageId: result.messageId || null
     })
   } catch (error) {
     console.error('Resend OTP error:', error)

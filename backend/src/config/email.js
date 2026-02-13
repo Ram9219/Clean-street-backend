@@ -11,7 +11,7 @@ class EmailService {
       this.senderName = process.env.BREVO_SENDER_NAME || 'Clean Street'
 
       if (!this.senderEmail) {
-        console.warn('⚠️  Brevo enabled but sender email is missing')
+        console.warn('  Brevo enabled but sender email is missing')
       }
       return
     }
@@ -50,10 +50,10 @@ class EmailService {
         return await this.sendBrevoEmail(to, subject, html)
       }
 
-      // If email service is disabled, log and skip
+      // If email service is disabled, log and fail
       if (!this.transporter) {
         console.warn('⚠️  Email skipped (service disabled):', to, subject)
-        return { success: true } // Don't fail registration if email is disabled
+        return { success: false, error: 'Email service disabled' }
       }
 
       await this.transporter.sendMail({
@@ -74,7 +74,7 @@ class EmailService {
     try {
       if (!this.brevoApiKey || !this.senderEmail) {
         console.warn('⚠️  Brevo email skipped (missing config):', to, subject)
-        return { success: true }
+        return { success: false, error: 'Brevo config missing' }
       }
 
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -95,13 +95,27 @@ class EmailService {
         })
       })
 
+      const responseText = await response.text()
+
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Brevo API error: ${response.status} ${errorText}`)
+        throw new Error(`Brevo API error: ${response.status} ${responseText}`)
       }
 
-      console.log('📧 Brevo email sent to:', to)
-      return { success: true }
+      let messageId
+      try {
+        const parsed = responseText ? JSON.parse(responseText) : null
+        messageId = parsed?.messageId
+      } catch {
+        messageId = undefined
+      }
+
+      if (messageId) {
+        console.log('📧 Brevo email sent to:', to, 'messageId:', messageId)
+      } else {
+        console.log('📧 Brevo email sent to:', to)
+      }
+
+      return { success: true, messageId }
     } catch (error) {
       console.error('❌ Brevo email sending failed:', error.message)
       return { success: false, error: error.message }
