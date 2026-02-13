@@ -58,8 +58,10 @@ const initializeApp = async () => {
     const allowedOrigins = [
       process.env.FRONTEND_URL,
       process.env.ADMIN_FRONTEND_URL,
-      'http://localhost:3000',
+      'https://infosys.ramkumar.app',
+      'https://admin.infosys.ramkumar.app',
       'http://localhost:3001',
+      'http://localhost:3000',
       'http://admin.localhost:3000'
     ].filter(Boolean);
 
