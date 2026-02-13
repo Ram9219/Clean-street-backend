@@ -54,8 +54,22 @@ const initializeApp = async () => {
       },
     }));
     
+    // Build allowed origins
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_FRONTEND_URL,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://admin.localhost:3000'
+    ].filter(Boolean);
+
     app.use(cors({
-      origin: true,
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const isAllowed = allowedOrigins.includes(origin) || /^http:\/\/.*\.localhost:3000$/.test(origin);
+        if (isAllowed) callback(null, true);
+        else callback(new Error('CORS not allowed'));
+      },
       credentials: true,
       exposedHeaders: ['Content-Disposition']
     }));
@@ -87,11 +101,12 @@ const initializeApp = async () => {
         ttl: 24 * 60 * 60 // 24 hours
       }),
       cookie: {
-        secure: process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.startsWith('https'),
+        secure: true,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.startsWith('https') ? 'none' : 'lax',
-        domain: process.env.COOKIE_DOMAIN || undefined
+        sameSite: 'none', // Required for cross-domain cookies
+        domain: process.env.COOKIE_DOMAIN,
+        path: '/'
       },
       name: 'clean_street.sid'
     }));
