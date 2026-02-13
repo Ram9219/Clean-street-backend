@@ -283,13 +283,9 @@ const initializeApp = async () => {
     });
 
     const PORT = process.env.PORT || 5000;
+
     app.listen(PORT, () => {
-      console.log(` Server running on port ${PORT}`);
-      console.log(` API Health: http://localhost:${PORT}/api/health`);
-      console.log(` System Status: http://localhost:${PORT}/api/system/status`);
-      console.log(` User Portal: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-      console.log(` Admin Portal: ${process.env.ADMIN_FRONTEND_URL || 'http://localhost:3000/admin'}`);
-      console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Server running on port ${PORT}`);
     });
 
   } catch (error) {
