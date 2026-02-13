@@ -660,19 +660,16 @@ router.post('/volunteers/:id/verify', isAdmin, async (req, res) => {
 
     // Update volunteer status to active (verified)
     user.volunteer_status = 'active'
-    user.verifiedBy = req.user._id
-    user.verifiedAt = new Date()
     await user.save()
 
-    // Update volunteer profile
+    // Update or create volunteer profile
     await VolunteerProfile.findOneAndUpdate(
       { userId: user._id },
       { 
         status: 'active',
-        verifiedBy: req.user._id,
-        verifiedAt: new Date()
+        tier: user.volunteer_tier || 'basic'
       },
-      { new: true }
+      { new: true, upsert: true }
     )
 
     // Send verification email
