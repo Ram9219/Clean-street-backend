@@ -119,6 +119,15 @@ router.post('/login', authLimiter, (req, res, next) => {
       })
     }
     
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Please verify your email first. Check your inbox for the OTP.',
+        requiresEmailVerification: true
+      })
+    }
+    
     // Check if user is trying to access admin via user login
     if (user.role === 'admin' && req.path.includes('/admin') === false) {
       return res.status(403).json({ 
