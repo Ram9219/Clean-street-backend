@@ -87,12 +87,11 @@ const initializeApp = async () => {
         ttl: 24 * 60 * 60 // 24 hours
       }),
       cookie: {
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.startsWith('https'),
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        // In dev, let browser set domain automatically; in prod use COOKIE_DOMAIN
-        domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
+        sameSite: process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.startsWith('https') ? 'none' : 'lax',
+        domain: process.env.COOKIE_DOMAIN || undefined
       },
       name: 'clean_street.sid'
     }));
