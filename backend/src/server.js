@@ -54,10 +54,14 @@ const initializeApp = async () => {
       },
     }));
     
-    // Build allowed origins
+    // Build allowed origins with fallbacks
+    const frontendUrl = process.env.FRONTEND_URL || 'https://infosys.ramkumar.app'
+    const adminUrl = process.env.ADMIN_FRONTEND_URL || 'https://infosys.ramkumar.app/admin'
+    const cookieDomain = process.env.COOKIE_DOMAIN || '.ramkumar.app'
+
     const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      process.env.ADMIN_FRONTEND_URL,
+      frontendUrl,
+      adminUrl,
       'https://infosys.ramkumar.app',
       'https://admin.infosys.ramkumar.app',
       'http://localhost:3001',
@@ -65,12 +69,19 @@ const initializeApp = async () => {
       'http://admin.localhost:3000'
     ].filter(Boolean);
 
+    console.log('🔒 CORS allowed origins:', allowedOrigins)
+    console.log('🍪 Session cookie domain:', cookieDomain)
+
     app.use(cors({
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
         const isAllowed = allowedOrigins.includes(origin) || /^http:\/\/.*\.localhost:3000$/.test(origin);
-        if (isAllowed) callback(null, true);
-        else callback(new Error('CORS not allowed'));
+        if (isAllowed) {
+          callback(null, true);
+        } else {
+          console.warn('❌ CORS rejected origin:', origin);
+          callback(new Error('CORS not allowed'));
+        }
       },
       credentials: true,
       exposedHeaders: ['Content-Disposition']
@@ -107,7 +118,7 @@ const initializeApp = async () => {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         sameSite: 'none', // Required for cross-domain cookies
-        domain: process.env.COOKIE_DOMAIN,
+        domain: cookieDomain,
         path: '/'
       },
       name: 'clean_street.sid'
