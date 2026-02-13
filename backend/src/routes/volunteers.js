@@ -5,7 +5,7 @@ import VolunteerApplication from '../models/VolunteerApplication.js'
 import Notification from '../models/Notification.js'
 import Event from '../models/Event.js'
 import { body, validationResult } from 'express-validator'
-import { otpRequestLimiter } from '../middleware/rateLimiter.js'
+import { authLimiter, otpRequestLimiter } from '../middleware/rateLimiter.js'
 import passport from '../config/passport.js'
 import emailService from '../config/email.js'
 
@@ -37,6 +37,60 @@ const canCreateEvents = (req, res, next) => {
 }
 
 // ========== VOLUNTEER REGISTRATION ==========
+
+// Volunteer Login (frontend compatibility)
+router.post('/login', authLimiter, (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) {
+      return next(err)
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: info?.message || 'Invalid credentials'
+      })
+    }
+
+    if (user.role !== 'volunteer') {
+      return res.status(403).json({
+        success: false,
+        error: 'Volunteer access required'
+      })
+    }
+
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        success: false,
+        error: 'Please verify your email first. Check your inbox for the OTP.',
+        requiresEmailVerification: true
+      })
+    }
+
+    req.login(user, (loginError) => {
+      if (loginError) {
+        return next(loginError)
+      }
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        user: {
+          _id: user._id,
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          phone: user.phone,
+          role: user.role,
+          profilePicture: user.profilePicture,
+          isEmailVerified: user.isEmailVerified,
+          volunteer_tier: user.volunteer_tier,
+          volunteer_status: user.volunteer_status
+        }
+      })
+    })
+  })(req, res, next)
+})
 
 // Register as basic volunteer (auto-approved)
 router.post('/register-basic', [
