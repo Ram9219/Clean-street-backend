@@ -743,30 +743,38 @@ router.post('/volunteers/:id/verify', isAdmin, async (req, res) => {
 router.post('/volunteers/:id/reject', isAdmin, [
   body('reason').optional().trim()
 ], async (req, res) => {
+  console.log('🔵 Reject volunteer route hit for ID:', req.params.id)
   try {
     const user = await User.findById(req.params.id)
+    console.log('🔵 User found:', user ? `${user.name} (${user.role})` : 'null')
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'Volunteer not found' })
     }
 
     if (user.role !== 'volunteer') {
+      console.log('❌ User is not a volunteer, role:', user.role)
       return res.status(400).json({ 
         success: false, 
         error: 'User is not a volunteer' 
       })
     }
 
+    console.log('🔵 Updating volunteer_status from', user.volunteer_status, 'to inactive')
     // Update volunteer status to inactive
     user.volunteer_status = 'inactive'
+    console.log('🔵 Attempting to save user...')
     await user.save()
+    console.log('✅ User saved successfully')
 
     // Update volunteer profile if exists
+    console.log('🔵 Updating VolunteerProfile...')
     await VolunteerProfile.findOneAndUpdate(
       { userId: user._id },
       { status: 'inactive' },
       { new: true }
     )
+    console.log('✅ VolunteerProfile updated')
 
     const rejectionReason = req.body.reason || 'Rejected by admin'
 
@@ -804,7 +812,19 @@ router.post('/volunteers/:id/reject', isAdmin, [
       }
     })
   } catch (error) {
-    console.error('Reject volunteer error:', error.message, error.stack)
+    console.error('❌ Reject volunteer error:', error.message)
+    console.error('❌ Error name:', error.name)
+    console.error('❌ Stack:', error.stack)
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.message
+      })
+    }
+    
     res.status(500).json({
       success: false,
       error: 'Failed to reject volunteer',
