@@ -361,6 +361,15 @@ router.post('/create-admin', isSuperAdmin, [
     
   } catch (error) {
     console.error('❌ Create admin error:', error.message, error.stack)
+    
+    // Handle specific errors
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email already registered'
+      })
+    }
+    
     res.status(500).json({ 
       success: false,
       error: 'Failed to create admin',
@@ -740,8 +749,9 @@ router.post('/volunteers/:id/reject', isAdmin, [
 
     // Update volunteer status to inactive
     user.volunteer_status = 'inactive'
-    user.rejectionReason = req.body.reason || 'Rejected by admin'
     await user.save()
+
+    const rejectionReason = req.body.reason || 'Rejected by admin'
 
     // Send rejection email
     try {
@@ -753,7 +763,7 @@ router.post('/volunteers/:id/reject', isAdmin, [
           <h2 style="color: #d32f2f;">Application Status Update</h2>
           <p>Dear ${user.name},</p>
           <p>Thank you for your interest in volunteering with Clean Street. Unfortunately, your application has been temporarily put on hold.</p>
-          <p><strong>Reason:</strong> ${user.rejectionReason}</p>
+          <p><strong>Reason:</strong> ${rejectionReason}</p>
           <p>You can reapply or contact support for more information.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #666; font-size: 12px;">
@@ -777,10 +787,11 @@ router.post('/volunteers/:id/reject', isAdmin, [
       }
     })
   } catch (error) {
-    console.error('Reject volunteer error:', error)
+    console.error('Reject volunteer error:', error.message, error.stack)
     res.status(500).json({
       success: false,
-      error: 'Failed to reject volunteer'
+      error: 'Failed to reject volunteer',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     })
   }
 })
