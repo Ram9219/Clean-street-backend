@@ -1,0 +1,38 @@
+{
+  "name": "clean-street-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "setup-env": "node scripts/setup-env.js",
+    "create-super-admin": "node scripts/create-super-admin.js",
+    "setup-super-admin": "node scripts/create-super-admin.js --email admin@example.com --password \"ChangeMe123!\" --name \"System Admin\"",
+    "system-status": "curl -X GET http://localhost:5000/api/system/status"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.9.0",
+    "connect-mongo": "^5.1.0",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.10.0",
+    "express-session": "^1.17.3",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
+    "mongoose": "^7.5.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.7",
+    "otp-generator": "^4.0.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "redis": "^4.6.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
