@@ -872,7 +872,7 @@ router.post('/volunteers/:id/approve', isAdmin, async (req, res) => {
 })
 
 // Reject volunteer application
-router.post('/volunteers/:id/reject', isAdmin, [
+router.post('/volunteers/applications/:id/reject', isAdmin, [
   body('reason').trim().notEmpty()
 ], async (req, res) => {
   try {
