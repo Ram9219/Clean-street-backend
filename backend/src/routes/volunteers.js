@@ -5,6 +5,7 @@ import VolunteerApplication from '../models/VolunteerApplication.js'
 import Notification from '../models/Notification.js'
 import Event from '../models/Event.js'
 import { body, validationResult } from 'express-validator'
+import { otpRequestLimiter } from '../middleware/rateLimiter.js'
 import passport from '../config/passport.js'
 import emailService from '../config/email.js'
 
@@ -142,6 +143,70 @@ router.post('/register-basic', [
       success: false, 
       error: error.message || 'Registration failed',
       details: process.env.NODE_ENV === 'development' ? error.toString() : undefined
+    })
+  }
+})
+
+// Verify volunteer email with OTP
+router.post('/verify-email', otpRequestLimiter, [
+  body('email').isEmail().normalizeEmail(),
+  body('otp').isLength({ min: 6, max: 6 }).isNumeric()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email or OTP format'
+      })
+    }
+
+    const { email, otp } = req.body
+
+    const user = await User.findOne({ email, role: 'volunteer' })
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email already verified'
+      })
+    }
+
+    if (!user.emailVerificationExpiry || user.emailVerificationExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        error: 'OTP has expired. Please request a new OTP.'
+      })
+    }
+
+    if (user.emailVerificationOTP !== otp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid OTP. Please try again.'
+      })
+    }
+
+    user.isEmailVerified = true
+    user.emailVerificationOTP = undefined
+    user.emailVerificationExpiry = undefined
+    await user.save()
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully. You can now login.'
+    })
+  } catch (error) {
+    console.error('Volunteer email verification error:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Verification failed'
     })
   }
 })

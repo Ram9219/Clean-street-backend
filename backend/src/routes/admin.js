@@ -743,17 +743,17 @@ router.post('/volunteers/:id/verify', isAdmin, async (req, res) => {
 router.post('/volunteers/:id/reject', isAdmin, [
   body('reason').optional().trim()
 ], async (req, res) => {
-  console.log('🔵 Reject volunteer route hit for ID:', req.params.id)
+  console.log(' Reject volunteer route hit for ID:', req.params.id)
   try {
     const user = await User.findById(req.params.id)
-    console.log('🔵 User found:', user ? `${user.name} (${user.role})` : 'null')
+    console.log(' User found:', user ? `${user.name} (${user.role})` : 'null')
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'Volunteer not found' })
     }
 
     if (user.role !== 'volunteer') {
-      console.log('❌ User is not a volunteer, role:', user.role)
+      console.log('User is not a volunteer, role:', user.role)
       return res.status(400).json({ 
         success: false, 
         error: 'User is not a volunteer' 
