@@ -55,14 +55,7 @@ const initializeApp = async () => {
     }));
     
     app.use(cors({
-      origin: [
-        process.env.FRONTEND_URL, 
-        process.env.ADMIN_FRONTEND_URL, 
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://admin.localhost:3000',
-        /^http:\/\/.*\.localhost:3000$/
-      ].filter(Boolean), // Remove undefined values
+      origin: true,
       credentials: true,
       exposedHeaders: ['Content-Disposition']
     }));
