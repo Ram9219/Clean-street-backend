@@ -3,6 +3,19 @@ import otpGenerator from 'otp-generator'
 
 class EmailService {
   constructor() {
+    this.useBrevo = Boolean(process.env.BREVO_API_KEY)
+
+    if (this.useBrevo) {
+      this.brevoApiKey = process.env.BREVO_API_KEY
+      this.senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_FROM
+      this.senderName = process.env.BREVO_SENDER_NAME || 'Clean Street'
+
+      if (!this.senderEmail) {
+        console.warn('⚠️  Brevo enabled but sender email is missing')
+      }
+      return
+    }
+
     // Only initialize if SMTP credentials are provided
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
       this.transporter = nodemailer.createTransport({
@@ -33,6 +46,10 @@ class EmailService {
   // Send email
   async sendEmail(to, subject, html) {
     try {
+      if (this.useBrevo) {
+        return await this.sendBrevoEmail(to, subject, html)
+      }
+
       // If email service is disabled, log and skip
       if (!this.transporter) {
         console.warn('⚠️  Email skipped (service disabled):', to, subject)
@@ -49,6 +66,44 @@ class EmailService {
       return { success: true }
     } catch (error) {
       console.error('❌ Email sending failed:', error.message)
+      return { success: false, error: error.message }
+    }
+  }
+
+  async sendBrevoEmail(to, subject, html) {
+    try {
+      if (!this.brevoApiKey || !this.senderEmail) {
+        console.warn('⚠️  Brevo email skipped (missing config):', to, subject)
+        return { success: true }
+      }
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'api-key': this.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            email: this.senderEmail,
+            name: this.senderName
+          },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Brevo API error: ${response.status} ${errorText}`)
+      }
+
+      console.log('📧 Brevo email sent to:', to)
+      return { success: true }
+    } catch (error) {
+      console.error('❌ Brevo email sending failed:', error.message)
       return { success: false, error: error.message }
     }
   }
