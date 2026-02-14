@@ -67,3 +67,16 @@ export const apiLimiter = rateLimit({
     return req.ip || req.connection?.remoteAddress || 'unknown'
   }
 })
+
+// Contact form rate limiter (per email, prevent spam)
+export const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 contact forms per hour per email
+  message: {
+    success: false,
+    error: 'Too many contact submissions. Please try again in an hour.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: getKeyGenerator('email')
+})
