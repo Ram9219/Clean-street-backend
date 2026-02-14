@@ -12,11 +12,23 @@ import crypto from 'crypto'
 
 const router = express.Router()
 
+const isProd = process.env.NODE_ENV === 'production'
+const logDebug = (...args) => {
+  if (!isProd) {
+    console.log(...args)
+  }
+}
+const logWarn = (...args) => {
+  if (!isProd) {
+    console.warn(...args)
+  }
+}
+
 // ========== ADMIN MIDDLEWARE ==========
 
 // Check if user is authenticated AND is admin
 const isAdmin = (req, res, next) => {
-  console.log('🔐 isAdmin check:', {
+  logDebug('🔐 isAdmin check:', {
     authenticated: req.isAuthenticated(),
     user: req.user?.email,
     role: req.user?.role,
@@ -296,12 +308,12 @@ router.post('/create-admin', isSuperAdmin, [
   body('name').trim().notEmpty(),
   body('permissions').optional().isArray()
 ], async (req, res) => {
-  console.log('🔵 Create admin route hit')
+  logDebug('🔵 Create admin route hit')
   try {
-    console.log('🔵 Validating request body...')
+    logDebug('🔵 Validating request body...')
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-      console.log('❌ Validation errors:', errors.array())
+      logDebug('❌ Validation errors:', errors.array())
       return res.status(400).json({ 
         success: false,
         errors: errors.array() 
@@ -310,7 +322,7 @@ router.post('/create-admin', isSuperAdmin, [
     
     const { email, password, name, permissions = [] } = req.body
     
-    console.log('📝 Creating admin:', { email, name, permissions })
+    logDebug('📝 Creating admin:', { email, name, permissions })
     
     // Check if user exists
     const existingUser = await User.findOne({ email })
@@ -335,7 +347,7 @@ router.post('/create-admin', isSuperAdmin, [
     })
     
     await admin.save()
-    console.log('✅ Admin created:', admin.email)
+    logDebug('✅ Admin created:', admin.email)
     
     // Send welcome email
     try {
@@ -353,9 +365,9 @@ router.post('/create-admin', isSuperAdmin, [
           <p><em>This is an automated message. Do not reply.</em></p>
         `
       )
-      console.log('📧 Welcome email sent to:', email)
+      logDebug('📧 Welcome email sent to:', email)
     } catch (emailError) {
-      console.warn('⚠️  Email send failed (non-critical):', emailError.message)
+      logWarn('⚠️  Email send failed (non-critical):', emailError.message)
       // Don't fail the request if email fails
     }
     
@@ -372,7 +384,11 @@ router.post('/create-admin', isSuperAdmin, [
     })
     
   } catch (error) {
-    console.error('❌ Create admin error:', error.message, error.stack)
+    if (!isProd) {
+      console.error('❌ Create admin error:', error.message, error.stack)
+    } else {
+      console.error('❌ Create admin error:', error.message)
+    }
     
     // Handle specific errors
     if (error.code === 11000) {
@@ -724,7 +740,7 @@ router.post('/volunteers/:id/verify', isAdmin, async (req, res) => {
         `
       )
     } catch (emailError) {
-      console.warn('⚠️  Verification email send failed:', emailError.message)
+      logWarn('⚠️  Verification email send failed:', emailError.message)
     }
 
     res.json({
@@ -752,43 +768,43 @@ router.post('/volunteers/:id/verify', isAdmin, async (req, res) => {
 router.post('/volunteers/:id/reject', isAdmin, [
   body('reason').optional().trim()
 ], async (req, res) => {
-  console.log(' Reject volunteer route hit for ID:', req.params.id)
+  logDebug(' Reject volunteer route hit for ID:', req.params.id)
   try {
     const user = await User.findById(req.params.id)
-    console.log(' User found:', user ? `${user.name} (${user.role})` : 'null')
+    logDebug(' User found:', user ? `${user.name} (${user.role})` : 'null')
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'Volunteer not found' })
     }
 
     if (user.role !== 'volunteer') {
-      console.log('User is not a volunteer, role:', user.role)
+      logDebug('User is not a volunteer, role:', user.role)
       return res.status(400).json({ 
         success: false, 
         error: 'User is not a volunteer' 
       })
     }
 
-    console.log('🔵 Updating volunteer_status from', user.volunteer_status, 'to inactive')
+    logDebug('🔵 Updating volunteer_status from', user.volunteer_status, 'to inactive')
     // Update volunteer status to inactive
     user.volunteer_status = 'inactive'
-    console.log('🔵 Attempting to save user...')
+    logDebug('🔵 Attempting to save user...')
     await user.save()
-    console.log('✅ User saved successfully')
+    logDebug('✅ User saved successfully')
 
     // Update volunteer profile if exists
-    console.log('🔵 Updating VolunteerProfile...')
+    logDebug('🔵 Updating VolunteerProfile...')
     await VolunteerProfile.findOneAndUpdate(
       { userId: user._id },
       { status: 'inactive' },
       { new: true }
     )
-    console.log('✅ VolunteerProfile updated')
+    logDebug('✅ VolunteerProfile updated')
 
     const rejectionReason = req.body.reason || 'Rejected by admin'
 
     // Send rejection email (best effort, don't fail if email fails)
-    console.log('🔵 Sending rejection email...')
+    logDebug('🔵 Sending rejection email...')
     setImmediate(async () => {
       try {
         await emailService.sendEmail(
@@ -808,9 +824,9 @@ router.post('/volunteers/:id/reject', isAdmin, [
           </div>
           `
         )
-        console.log('✅ Rejection email sent')
+        logDebug('✅ Rejection email sent')
       } catch (emailError) {
-        console.warn('⚠️  Rejection email send failed:', emailError.message)
+        logWarn('⚠️  Rejection email send failed:', emailError.message)
       }
     })
 
@@ -826,8 +842,10 @@ router.post('/volunteers/:id/reject', isAdmin, [
     })
   } catch (error) {
     console.error('❌ Reject volunteer error:', error.message)
-    console.error('❌ Error name:', error.name)
-    console.error('❌ Stack:', error.stack)
+    if (!isProd) {
+      console.error('❌ Error name:', error.name)
+      console.error('❌ Stack:', error.stack)
+    }
     
     // Handle validation errors
     if (error.name === 'ValidationError') {

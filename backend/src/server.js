@@ -22,6 +22,18 @@ const __dirname = dirname(__filename)
 
 const app = express()
 
+const isProd = process.env.NODE_ENV === 'production'
+const logDebug = (...args) => {
+  if (!isProd) {
+    console.log(...args)
+  }
+}
+const logWarn = (...args) => {
+  if (!isProd) {
+    console.warn(...args)
+  }
+}
+
 // Dynamically import routes AFTER env vars are loaded
 let authRoutes, adminRoutes, User, createSuperAdmin;
 
@@ -69,8 +81,8 @@ const initializeApp = async () => {
       'http://admin.localhost:3000'
     ].filter(Boolean);
 
-    console.log('🔒 CORS allowed origins:', allowedOrigins)
-    console.log('🍪 Session cookie domain:', cookieDomain)
+    logDebug('🔒 CORS allowed origins:', allowedOrigins)
+    logDebug('🍪 Session cookie domain:', cookieDomain)
 
     app.use(cors({
       origin: (origin, callback) => {
@@ -79,7 +91,7 @@ const initializeApp = async () => {
         if (isAllowed) {
           callback(null, true);
         } else {
-          console.warn('❌ CORS rejected origin:', origin);
+          logWarn('❌ CORS rejected origin:', origin);
           callback(new Error('CORS not allowed'));
         }
       },
@@ -282,7 +294,11 @@ const initializeApp = async () => {
 
     // Error handling
     app.use((err, req, res, next) => {
-      console.error(err.stack);
+      if (!isProd && err?.stack) {
+        console.error(err.stack)
+      } else {
+        console.error(err?.message || 'Unhandled error')
+      }
       
       // Handle specific errors
       if (err.name === 'ValidationError') {
@@ -309,7 +325,7 @@ const initializeApp = async () => {
     const PORT = process.env.PORT || 5000;
 
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      logDebug(`Server running on port ${PORT}`)
     });
 
   } catch (error) {
