@@ -5,7 +5,7 @@ import VolunteerApplication from '../models/VolunteerApplication.js'
 import Notification from '../models/Notification.js'
 import Event from '../models/Event.js'
 import { body, validationResult } from 'express-validator'
-import { authLimiter, otpRequestLimiter } from '../middleware/rateLimiter.js'
+import { authLimiter, otpRequestLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js'
 import passport from '../config/passport.js'
 import emailService from '../config/email.js'
 
@@ -268,7 +268,7 @@ router.post('/verify-email', otpRequestLimiter, [
 // ========== PASSWORD RESET WITH OTP ==========
 
 // Request password reset OTP
-router.post('/forgot-password', [
+router.post('/forgot-password', passwordResetLimiter, [
   body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
   try {
@@ -290,12 +290,12 @@ router.post('/forgot-password', [
 
     // Generate OTP
     const otp = emailService.generateOTP(6)
-    user.emailVerificationOTP = otp
-    user.emailVerificationExpiry = Date.now() + 10 * 60 * 1000 // 10 minutes
+    user.resetPasswordOTP = otp
+    user.resetPasswordExpiry = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
     await user.save()
 
     // Send OTP email
-    await emailService.sendEmail(
+    const emailResult = await emailService.sendEmail(
       email,
       'Password Reset OTP - Clean Street Volunteers',
       `
@@ -310,6 +310,13 @@ router.post('/forgot-password', [
       </div>
       `
     )
+
+    if (!emailResult.success) {
+      user.resetPasswordOTP = undefined
+      user.resetPasswordExpiry = undefined
+      await user.save()
+      throw new Error('Failed to send OTP email')
+    }
 
     res.json({
       success: true,
@@ -339,11 +346,11 @@ router.post('/verify-reset-otp', [
       return res.status(404).json({ success: false, error: 'User not found' })
     }
 
-    if (!user.emailVerificationOTP || user.emailVerificationOTP !== otp) {
+    if (!user.resetPasswordOTP || user.resetPasswordOTP !== otp) {
       return res.status(400).json({ success: false, error: 'Invalid OTP' })
     }
 
-    if (Date.now() > user.emailVerificationExpiry) {
+    if (!user.resetPasswordExpiry || Date.now() > user.resetPasswordExpiry.getTime()) {
       return res.status(400).json({ success: false, error: 'OTP expired. Please request a new one.' })
     }
 
@@ -379,18 +386,18 @@ router.post('/reset-password', [
       return res.status(404).json({ success: false, error: 'User not found' })
     }
 
-    if (!user.emailVerificationOTP || user.emailVerificationOTP !== otp) {
+    if (!user.resetPasswordOTP || user.resetPasswordOTP !== otp) {
       return res.status(400).json({ success: false, error: 'Invalid OTP' })
     }
 
-    if (Date.now() > user.emailVerificationExpiry) {
+    if (!user.resetPasswordExpiry || Date.now() > user.resetPasswordExpiry.getTime()) {
       return res.status(400).json({ success: false, error: 'OTP expired. Please request a new one.' })
     }
 
     // Update password
     user.password = newPassword
-    user.emailVerificationOTP = undefined
-    user.emailVerificationExpiry = undefined
+    user.resetPasswordOTP = undefined
+    user.resetPasswordExpiry = undefined
     await user.save()
 
     // Send confirmation email

@@ -4,6 +4,12 @@ import otpGenerator from 'otp-generator'
 class EmailService {
   constructor() {
     this.useBrevo = Boolean(process.env.BREVO_API_KEY)
+    this.smtpHost = (process.env.SMTP_HOST || '').trim()
+    this.smtpPort = Number(process.env.SMTP_PORT) || 587
+    this.smtpUser = (process.env.SMTP_USER || process.env.SMTP_USERNAME || '').trim()
+    this.smtpPassword = (process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '').trim()
+    this.smtpFrom = (process.env.SMTP_FROM || this.smtpUser || '').trim()
+    this.smtpConnectionVerified = false
 
     if (this.useBrevo) {
       this.brevoApiKey = process.env.BREVO_API_KEY
@@ -17,28 +23,29 @@ class EmailService {
     }
 
     // Only initialize if SMTP credentials are provided
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    if (this.smtpHost && this.smtpUser && this.smtpPassword) {
       this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: Number(process.env.SMTP_PORT) === 465,
+        host: this.smtpHost,
+        port: this.smtpPort,
+        secure: this.smtpPort === 465,
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASSWORD
+          user: this.smtpUser,
+          pass: this.smtpPassword
         }
       })
       
       // Test connection
       this.transporter.verify((error, success) => {
         if (error) {
-          console.warn('⚠️  Email service not available:', error.message)
-          this.transporter = null
+          console.warn('⚠️  SMTP verification failed at startup:', error.message)
+          console.warn('⚠️  Continuing with SMTP transport; email send will still be attempted.')
         } else if (success) {
+          this.smtpConnectionVerified = true
           console.log('✅ Email service connected successfully')
         }
       })
     } else {
-      console.warn('⚠️  Email service disabled - SMTP credentials not configured')
+      console.warn('⚠️  Email service disabled - SMTP credentials not configured (expected: SMTP_HOST + SMTP_USER/SMTP_USERNAME + SMTP_PASSWORD/SMTP_PASS)')
       this.transporter = null
     }
   }
@@ -57,7 +64,7 @@ class EmailService {
       }
 
       await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: this.smtpFrom || this.smtpUser,
         to,
         subject,
         html
