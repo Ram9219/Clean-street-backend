@@ -8,6 +8,8 @@ import { body, validationResult } from 'express-validator'
 import { authLimiter, otpRequestLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js'
 import passport from '../config/passport.js'
 import emailService from '../config/email.js'
+import { upload } from '../config/multer.js'
+import { uploadProfileImage } from '../config/cloudinary.js'
 
 const router = express.Router()
 
@@ -479,6 +481,58 @@ router.put('/profile', isVolunteer, async (req, res) => {
   } catch (error) {
     console.error('Update profile error:', error)
     res.status(500).json({ success: false, error: 'Failed to update profile' })
+  }
+})
+
+// Upload volunteer profile picture
+router.post('/upload-profile-picture', isVolunteer, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No image file provided'
+      })
+    }
+
+    const fileName = `${req.user._id}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+    const uploadResult = await uploadProfileImage(req.file.buffer, fileName)
+
+    const user = await User.findById(req.user._id)
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      })
+    }
+
+    user.profilePicture = uploadResult.secure_url
+    await user.save()
+
+    res.json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      image: {
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id
+      },
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        phone: user.phone,
+        isEmailVerified: user.isEmailVerified,
+        volunteer_status: user.volunteer_status,
+        volunteer_tier: user.volunteer_tier
+      }
+    })
+  } catch (error) {
+    console.error('Volunteer profile picture upload error:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload profile picture'
+    })
   }
 })
 
