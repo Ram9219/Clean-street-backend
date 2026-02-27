@@ -301,8 +301,8 @@ router.post('/force-password-change', isAdmin, [
   }
 })
 
-// 4. Create Regular Admin (only by super admin)
-router.post('/create-admin', isSuperAdmin, [
+// 4. Create Regular Admin (by admin or super admin)
+router.post('/create-admin', isAdmin, [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 8 }),
   body('name').trim().notEmpty(),
