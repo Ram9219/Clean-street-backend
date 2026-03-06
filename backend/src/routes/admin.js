@@ -308,12 +308,12 @@ router.post('/create-admin', isAdmin, [
   body('name').trim().notEmpty(),
   body('permissions').optional().isArray()
 ], async (req, res) => {
-  logDebug('🔵 Create admin route hit')
+  logDebug(' Create admin route hit')
   try {
-    logDebug('🔵 Validating request body...')
+    logDebug(' Validating request body...')
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
-      logDebug('❌ Validation errors:', errors.array())
+      logDebug(' Validation errors:', errors.array())
       return res.status(400).json({ 
         success: false,
         errors: errors.array() 
@@ -322,7 +322,7 @@ router.post('/create-admin', isAdmin, [
     
     const { email, password, name, permissions = [] } = req.body
     
-    logDebug('📝 Creating admin:', { email, name, permissions })
+    logDebug(' Creating admin:', { email, name, permissions })
     
     // Check if user exists
     const existingUser = await User.findOne({ email })
